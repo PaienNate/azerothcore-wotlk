@@ -641,8 +641,7 @@ void InstanceScript::DoStopTimedAchievement(AchievementCriteriaTimedTypes type, 
 void InstanceScript::DoRemoveAurasDueToSpellOnPlayers(uint32 spell)
 {
     Map::PlayerList const& PlayerList = instance->GetPlayers();
-
-    instance->DoForAllPlayers([&](Player* player)
+    if (!PlayerList.IsEmpty())
     {
         for (Map::PlayerList::const_iterator itr = PlayerList.begin(); itr != PlayerList.end(); ++itr)
         {
@@ -662,6 +661,7 @@ void InstanceScript::DoRemoveAurasDueToSpellOnPlayers(uint32 spell)
             }
         }
     }
+}
 
 // Cast spell on all players in instance
 void InstanceScript::DoCastSpellOnPlayers(uint32 spell)
