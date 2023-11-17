@@ -25,9 +25,6 @@
 [submodule "modules/mod-transmog"]
 	path = modules/mod-transmog
 	url = git@github.com:AlvinZhu/mod-transmog.git
-[submodule "modules/mod-individual-progression"]
-	path = modules/mod-individual-progression
-	url = git@github.com:AlvinZhu/mod-individual-progression.git
 [submodule "modules/mod-bg-set-level"]
 	path = modules/mod-bg-set-level
 	url = git@github.com:AlvinZhu/mod-bg-set-level.git
