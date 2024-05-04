@@ -17,6 +17,7 @@
 
 #include "CreatureAI.h"
 #include "DisableMgr.h"
+#include "GameEventMgr.h"
 #include "GameObjectAI.h"
 #include "GameTime.h"
 #include "GitRevision.h"
@@ -832,7 +833,8 @@ void Player::RewardQuest(Quest const* quest, uint32 reward, Object* questGiver, 
     // cast spells after mark quest complete (some spells have quest completed state requirements in spell_area data)
     if (quest->GetRewSpellCast() > 0)
     {
-        if (SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(quest->GetRewSpellCast())){
+        if (SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(quest->GetRewSpellCast()))
+        {
             if (questGiver->isType(TYPEMASK_UNIT) && !spellInfo->HasEffect(SPELL_EFFECT_LEARN_SPELL) && !spellInfo->HasEffect(SPELL_EFFECT_CREATE_ITEM) && !spellInfo->IsSelfCast())
             {
                 if (Creature* creature = GetMap()->GetCreature(questGiver->GetGUID()))
@@ -844,7 +846,8 @@ void Player::RewardQuest(Quest const* quest, uint32 reward, Object* questGiver, 
     }
     else if (quest->GetRewSpell() > 0)
     {
-        if (SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(quest->GetRewSpell())) {
+        if (SpellInfo const* spellInfo = sSpellMgr->GetSpellInfo(quest->GetRewSpell()))
+        {
             if (questGiver->isType(TYPEMASK_UNIT) && !spellInfo->HasEffect(SPELL_EFFECT_LEARN_SPELL) && !spellInfo->HasEffect(SPELL_EFFECT_CREATE_ITEM) && !spellInfo->IsSelfCast())
             {
                 if (Creature* creature = GetMap()->GetCreature(questGiver->GetGUID()))
@@ -2349,7 +2352,7 @@ void Player::SendQuestReward(Quest const* quest, uint32 XP)
     WorldPacket data(SMSG_QUESTGIVER_QUEST_COMPLETE, (4 + 4 + 4 + 4 + 4));
     data << uint32(questid);
 
-    if (GetLevel() < sWorld->getIntConfig(CONFIG_MAX_PLAYER_LEVEL))
+    if (!IsMaxLevel())
     {
         data << uint32(XP);
         data << uint32(quest->GetRewOrReqMoney(GetLevel()));

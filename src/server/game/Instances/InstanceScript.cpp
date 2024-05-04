@@ -74,6 +74,7 @@ void InstanceScript::OnGameObjectCreate(GameObject* go)
 {
     AddObject(go);
     AddDoor(go);
+    sScriptMgr->AfterInstanceGameObjectCreate(instance, go);
 }
 
 void InstanceScript::OnGameObjectRemove(GameObject* go)
@@ -643,13 +644,9 @@ void InstanceScript::DoRemoveAurasDueToSpellOnPlayers(uint32 spell)
     Map::PlayerList const& PlayerList = instance->GetPlayers();
     if (!PlayerList.IsEmpty())
     {
-        for (Map::PlayerList::const_iterator itr = PlayerList.begin(); itr != PlayerList.end(); ++itr)
-        {
-            if (Player* player = itr->GetSource())
-            {
-                player->RemoveAurasDueToSpell(spell);
-                if (Pet* pet = player->GetPet())
-                    pet->RemoveAurasDueToSpell(spell);
+        player->RemoveAurasDueToSpell(spell);
+        if (Pet* pet = player->GetPet())
+            pet->RemoveAurasDueToSpell(spell);
                 //npcbot: include bots
                 if (player->HaveBot())
                 {
@@ -658,30 +655,24 @@ void InstanceScript::DoRemoveAurasDueToSpellOnPlayers(uint32 spell)
                             DoRemoveAurasDueToSpellOnNPCBot(bitr.second, spell);
                 }
                 //end npcbot
-            }
-        }
-    }
+    });
 }
 
 // Cast spell on all players in instance
 void InstanceScript::DoCastSpellOnPlayers(uint32 spell)
 {
-    Map::PlayerList const& PlayerList = instance->GetPlayers();
-
-    if (!PlayerList.IsEmpty())
-        for (Map::PlayerList::const_iterator i = PlayerList.begin(); i != PlayerList.end(); ++i)
-            if (Player* player = i->GetSource())
-            {
-                player->CastSpell(player, spell, true);
-                //npcbot: include bots
-                if (player->HaveBot())
-                {
-                    for (auto const& bitr : *player->GetBotMgr()->GetBotMap())
-                        if (bitr.second && bitr.second->IsInWorld())
-                            DoCastSpellOnNPCBot(bitr.second, spell);
-                }
-                //end npcbot
-            }
+    instance->DoForAllPlayers([&](Player* player)
+    {
+        player->CastSpell(player, spell, true);
+        //npcbot: include bots
+        if (player->HaveBot())
+        {
+            for (auto const& bitr : *player->GetBotMgr()->GetBotMap())
+                if (bitr.second && bitr.second->IsInWorld())
+                    DoCastSpellOnNPCBot(bitr.second, spell);
+        }
+        //end npcbot
+    });
 }
 
 //npcbot: hooks
@@ -788,6 +779,26 @@ void InstanceScript::SendEncounterUnit(uint32 type, Unit* unit /*= nullptr*/, ui
     instance->SendToPlayers(&data);
 }
 
+void InstanceScript::LoadInstanceSavedGameobjectStateData()
+{
+    _objectStateMap.clear();
+
+    CharacterDatabasePreparedStatement* stmt = CharacterDatabase.GetPreparedStatement(CHAR_SELECT_INSTANCE_SAVED_DATA);
+    stmt->SetData(0, instance->GetInstanceId());
+
+    if (PreparedQueryResult result = CharacterDatabase.Query(stmt))
+    {
+        Field* fields;
+
+        do
+        {
+            fields = result->Fetch();
+            StoreGameObjectState(fields[0].Get<uint32>(), fields[1].Get<uint8>());
+
+        } while (result->NextRow());
+    }
+}
+
 std::string InstanceScript::GetBossStateName(uint8 state)
 {
     // See enum EncounterState in InstanceScript.h
@@ -808,6 +819,18 @@ std::string InstanceScript::GetBossStateName(uint8 state)
         default:
             return "INVALID";
     }
+}
+
+uint8 InstanceScript::GetStoredGameObjectState(ObjectGuid::LowType spawnId) const
+{
+    auto i = _objectStateMap.find(spawnId);
+
+    if (i != _objectStateMap.end())
+    {
+        return i->second;
+    }
+
+    return 3; // Any state higher than 2 to get the default state for the object we are loading.
 }
 
 bool InstanceHasScript(WorldObject const* obj, char const* scriptName)

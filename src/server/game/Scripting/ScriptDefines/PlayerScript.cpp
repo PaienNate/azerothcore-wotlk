@@ -15,6 +15,7 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "PlayerScript.h"
 #include "ScriptMgr.h"
 #include "ScriptMgrMacros.h"
 
@@ -63,6 +64,14 @@ void ScriptMgr::OnBattlegroundDesertion(Player* player, BattlegroundDesertionTyp
     ExecuteScript<PlayerScript>([&](PlayerScript* script)
     {
         script->OnBattlegroundDesertion(player, desertionType);
+    });
+}
+
+void ScriptMgr::OnPlayerJustDied(Player* player)
+{
+    ExecuteScript<PlayerScript>([&](PlayerScript* script)
+    {
+        script->OnPlayerJustDied(player);
     });
 }
 
@@ -336,6 +345,14 @@ void ScriptMgr::OnPlayerUpdate(Player* player, uint32 p_time)
     });
 }
 
+void ScriptMgr::OnAfterPlayerUpdate(Player* player, uint32 diff)
+{
+    ExecuteScript<PlayerScript>([&](PlayerScript* script)
+    {
+        script->OnAfterUpdate(player, diff);
+    });
+}
+
 void ScriptMgr::OnPlayerLogin(Player* player)
 {
     ExecuteScript<PlayerScript>([&](PlayerScript* script)
@@ -350,6 +367,14 @@ void ScriptMgr::OnPlayerLoadFromDB(Player* player)
     {
         script->OnLoadFromDB(player);
     });
+}
+
+void ScriptMgr::OnBeforePlayerLogout(Player* player)
+{
+    ExecuteScript<PlayerScript>([&](PlayerScript* script)
+        {
+            script->OnBeforeLogout(player);
+        });
 }
 
 void ScriptMgr::OnPlayerLogout(Player* player)
@@ -1619,14 +1644,6 @@ void ScriptMgr::OnQuestAbandon(Player* player, uint32 questId)
 }
 
 // Player anti cheat
-void ScriptMgr::AnticheatSetSkipOnePacketForASH(Player* player, bool apply)
-{
-    ExecuteScript<PlayerScript>([&](PlayerScript* script)
-    {
-        script->AnticheatSetSkipOnePacketForASH(player, apply);
-    });
-}
-
 void ScriptMgr::AnticheatSetCanFlybyServer(Player* player, bool apply)
 {
     ExecuteScript<PlayerScript>([&](PlayerScript* script)
@@ -1696,3 +1713,11 @@ bool ScriptMgr::AnticheatCheckMovementInfo(Player* player, MovementInfo const& m
 
     return true;
 }
+
+PlayerScript::PlayerScript(const char* name)
+    : ScriptObject(name)
+{
+    ScriptRegistry<PlayerScript>::AddScript(this);
+}
+
+template class AC_GAME_API ScriptRegistry<PlayerScript>;

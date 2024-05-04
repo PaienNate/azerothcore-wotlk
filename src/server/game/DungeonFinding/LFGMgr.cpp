@@ -34,6 +34,7 @@
 #include "ObjectMgr.h"
 #include "Opcodes.h"
 #include "Player.h"
+#include "ScriptMgr.h"
 #include "SharedDefines.h"
 #include "SocialMgr.h"
 #include "SpellAuras.h"
@@ -50,9 +51,6 @@ namespace lfg
 {
     LFGMgr::LFGMgr(): m_lfgProposalId(1), m_options(sWorld->getIntConfig(CONFIG_LFG_OPTIONSMASK)), m_Testing(false)
     {
-        new LFGPlayerScript();
-        new LFGGroupScript();
-
         for (uint8 team = 0; team < 2; ++team)
         {
             m_raidBrowserUpdateTimer[team] = 10000;
@@ -2340,7 +2338,7 @@ namespace lfg
 
         if (out)
         {
-            if (player->GetMapId() == uint32(dungeon->map))
+            if ((player->GetMapId() == uint32(dungeon->map)) && (!group->isRollLootActive()))//增加拾取检测防止装备丢失
                 player->TeleportToEntryPoint();
 
             return;
@@ -2368,6 +2366,13 @@ namespace lfg
         {
             error = LFG_TELEPORTERROR_COMBAT;
         }
+        else if (out && error == LFG_TELEPORTERROR_OK)
+        {
+            if (player->GetMapId() == uint32(dungeon->map))
+                player->TeleportToEntryPoint();
+
+            return;
+        }
         else
         {
             uint32 mapid = dungeon->map;
@@ -2393,11 +2398,18 @@ namespace lfg
         }
 
         if (error != LFG_TELEPORTERROR_OK)
+        {
             player->GetSession()->SendLfgTeleportError(uint8(error));
 
-        //LOG_DEBUG("lfg", "TeleportPlayer: Player {} is being teleported in to map {} "
-        //    "(x: {}, y: {}, z: {}) Result: {}", player->GetName(), dungeon->map,
-        //    dungeon->x, dungeon->y, dungeon->z, error);
+            LOG_DEBUG("lfg", "Player [{}] could NOT be teleported in to map [{}] (x: {}, y: {}, z: {}) Error: {}",
+            player->GetName(), dungeon->map, dungeon->x, dungeon->y, dungeon->z, error);
+        }
+        else
+        {
+            LOG_DEBUG("lfg", "Player [{}] is being teleported in to map [{}] (x: {}, y: {}, z: {})",
+            player->GetName(), dungeon->map, dungeon->x, dungeon->y, dungeon->z);
+        }
+
     }
 
     /**
@@ -2487,8 +2499,19 @@ namespace lfg
                 continue;
 
             // if we can take the quest, means that we haven't done this kind of "run", IE: First Heroic Random of Day.
+            if (player->IsInWorld())//增加在线检测
+            {
+
             if (player->CanRewardQuest(quest, false))
+            {
+                if (player->HasTankSpec() or player->HasHealSpec())
+                {
+                    player->AddItem(54218, 1);//T/N奖励额外兰德鲁的礼物盒
+                    player->AddItem(49426, 1);//T/N奖励额外兰德鲁的礼物盒
+                    player->SendSystemMessage("坦克奶妈额外奖励已发放-兰德鲁的礼物盒*1-寒冰纹章*1");
+                }
                 player->RewardQuest(quest, 0, nullptr, false, true);
+            }
             else
             {
                 done = true;
@@ -2496,7 +2519,14 @@ namespace lfg
                 if (!quest)
                     continue;
                 // we give reward without informing client (retail does this)
+                if (player->HasTankSpec() or player->HasHealSpec())
+                {
+                    player->AddItem(47241, 2);//T/N奖励额外牌子
+                    player->SendSystemMessage("坦克奶妈额外奖励已发放-凯旋纹章*2");
+                }
                 player->RewardQuest(quest, 0, nullptr, false, true);
+            }
+
             }
 
             // Give rewards

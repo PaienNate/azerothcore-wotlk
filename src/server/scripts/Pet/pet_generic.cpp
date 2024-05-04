@@ -15,20 +15,20 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-/*
- * Ordered alphabetically using scriptname.
- * Scriptnames of files in this file should be prefixed with "npc_pet_gen_".
- */
-
+#include "CreatureScript.h"
 #include "CreatureTextMgr.h"
 #include "Group.h"
 #include "PassiveAI.h"
 #include "Player.h"
-#include "ScriptMgr.h"
 #include "ScriptedCreature.h"
 #include "ScriptedGossip.h"
 #include "SpellAuras.h"
 #include "SpellScript.h"
+#include "SpellScriptLoader.h"
+/*
+ * Ordered alphabetically using scriptname.
+ * Scriptnames of files in this file should be prefixed with "npc_pet_gen_".
+ */
 
 enum soulTrader
 {
@@ -456,6 +456,7 @@ struct npc_pet_gen_valkyr_guardian : public ScriptedAI
             if (Unit* target = owner->GetSelectedUnit())
                 if (!owner->IsFriendlyTo(target))
                     AttackStart(target);
+        me->AddAura(68595,me);//瓦格里增加75%范围免伤
     }
 
     void OwnerAttacked(Unit* target) override
@@ -833,3 +834,4 @@ void AddSC_generic_pet_scripts()
     RegisterCreatureAI(npc_pet_gen_moth);
     RegisterCreatureAI(npc_pet_darting_hatchling);
 }
+

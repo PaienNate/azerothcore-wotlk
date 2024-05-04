@@ -143,6 +143,25 @@ Quest::Quest(Field* questRecord)
     }
 }
 
+std::string const& Quest::GetLocalizeTitle(LocaleConstant loc) const
+{
+    QuestLocale const* questInfo = sObjectMgr->GetQuestLocale(GetQuestId());
+    if (questInfo){
+        std::wstring wnamepart;
+        if (questInfo->Title.size() > loc && !questInfo->Title[loc].empty())
+        {
+            if (Utf8FitTo(questInfo->Title[loc], wnamepart))
+                return questInfo->Title[loc];
+        }
+    }
+    return GetTitle();
+}
+
+void Quest::GetLocalizeTitle(std::string &questTitle, LocaleConstant loc) const
+{
+    questTitle = GetLocalizeTitle(loc);
+}
+
 void Quest::LoadQuestDetails(Field* fields)
 {
     for (int i = 0; i < QUEST_EMOTE_COUNT; ++i)
@@ -252,7 +271,7 @@ int32 Quest::GetRewOrReqMoney(uint8 playerLevel) const
         }
     }
 
-    return static_cast<int32>(rewardedMoney * sWorld->getRate(RATE_DROP_MONEY));
+    return static_cast<int32>(rewardedMoney * sWorld->getRate(RATE_REWARD_BONUS_MONEY));
 }
 
 uint32 Quest::GetRewMoneyMaxLevel() const
@@ -260,7 +279,7 @@ uint32 Quest::GetRewMoneyMaxLevel() const
     if (HasFlag(QUEST_FLAGS_NO_MONEY_FROM_XP))
         return 0;
 
-    return static_cast<int32>(RewardBonusMoney * sWorld->getRate(RATE_REWARD_BONUS_MONEY) * sWorld->getRate(RATE_DROP_MONEY));
+    return static_cast<int32>(RewardBonusMoney * sWorld->getRate(RATE_REWARD_BONUS_MONEY));
 }
 
 bool Quest::IsAutoAccept() const

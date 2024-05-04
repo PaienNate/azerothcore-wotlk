@@ -23,11 +23,11 @@ Category: commandscripts
 EndScriptData */
 
 #include "Chat.h"
+#include "CommandScript.h"
 #include "GameTime.h"
 #include "ObjectMgr.h"
 #include "Player.h"
 #include "ReputationMgr.h"
-#include "ScriptMgr.h"
 
 using namespace Acore::ChatCommands;
 
@@ -52,27 +52,6 @@ public:
         return commandTable;
     }
 
-    static void _LocalizeQuest(std::string &questTitle, uint32 entry, uint32 loc)
-    {
-        std::wstring wnamepart;
-
-        QuestLocale const* questInfo = sObjectMgr->GetQuestLocale(entry);
-        if (!questInfo)
-            return;
-
-        if (questInfo->Title.size() > loc && !questInfo->Title[loc].empty())
-        {
-            const std::string title = questInfo->Title[loc];
-            if (Utf8FitTo(title, wnamepart))
-                questTitle = title;
-        }
-    }
-
-    static void _LocalizeQuest(Player const* forPlayer, std::string &questTitle, uint32 entry)
-    {
-        _LocalizeQuest(questTitle, entry, forPlayer->GetSession()->GetSessionDbLocaleIndex());
-    }
-
     static bool HandleQuestAdd(ChatHandler* handler, Quest const* quest, Optional<PlayerIdentifier> playerTarget)
     {
         if (!playerTarget)
@@ -82,8 +61,7 @@ public:
 
         if (!playerTarget)
         {
-            handler->SendSysMessage(LANG_PLAYER_NOT_FOUND);
-            handler->SetSentErrorMessage(true);
+            handler->SendErrorMessage(LANG_PLAYER_NOT_FOUND);
             return false;
         }
 
@@ -97,18 +75,16 @@ public:
 
         if (result != itc->end())
         {
-            handler->PSendSysMessage(LANG_COMMAND_QUEST_STARTFROMITEM, entry, result->second.ItemId);
-            handler->SetSentErrorMessage(true);
+            handler->SendErrorMessage(LANG_COMMAND_QUEST_STARTFROMITEM, entry, result->second.ItemId);
             return false;
         }
 
         if (Player* player = playerTarget->GetConnectedPlayer())
         {
-            _LocalizeQuest(player, questTitle, entry);
+            quest->GetLocalizeTitle(questTitle, player->GetSession()->GetSessionDbLocaleIndex());
             if (player->IsActiveQuest(entry))
             {
-                handler->PSendSysMessage(LANG_COMMAND_QUEST_ACTIVE, questTitle.c_str(), entry);
-                handler->SetSentErrorMessage(true);
+                handler->SendErrorMessage(LANG_COMMAND_QUEST_ACTIVE, quest->GetTitle().c_str(), entry);
                 return false;
             }
 
@@ -120,14 +96,13 @@ public:
         }
         else
         {
-            _LocalizeQuest(questTitle, entry, LOCALE_zhCN);
+            quest->GetLocalizeTitle(questTitle, LOCALE_zhCN);
             ObjectGuid::LowType guid = playerTarget->GetGUID().GetCounter();
             QueryResult result = CharacterDatabase.Query("SELECT 1 FROM character_queststatus WHERE guid = {} AND quest = {}", guid, entry);
 
             if (result)
             {
-                handler->PSendSysMessage(LANG_COMMAND_QUEST_ACTIVE, questTitle.c_str(), entry);
-                handler->SetSentErrorMessage(true);
+                handler->SendErrorMessage(LANG_COMMAND_QUEST_ACTIVE, quest->GetTitle().c_str(), entry);
                 return false;
             }
 
@@ -169,8 +144,7 @@ public:
 
         if (!playerTarget)
         {
-            handler->SendSysMessage(LANG_PLAYER_NOT_FOUND);
-            handler->SetSentErrorMessage(true);
+            handler->SendErrorMessage(LANG_PLAYER_NOT_FOUND);
             return false;
         }
 
@@ -178,8 +152,7 @@ public:
 
         if (!quest)
         {
-            handler->PSendSysMessage(LANG_COMMAND_QUEST_NOTFOUND, entry);
-            handler->SetSentErrorMessage(true);
+            handler->SendErrorMessage(LANG_COMMAND_QUEST_NOTFOUND, entry);
             return false;
         }
 
@@ -187,7 +160,7 @@ public:
 
         if (Player* player = playerTarget->GetConnectedPlayer())
         {
-            _LocalizeQuest(player, questTitle, entry);
+            quest->GetLocalizeTitle(questTitle, player->GetSession()->GetSessionDbLocaleIndex());
             // remove all quest entries for 'entry' from quest log
             for (uint8 slot = 0; slot < MAX_QUEST_LOG_SIZE; ++slot)
             {
@@ -212,7 +185,7 @@ public:
         }
         else
         {
-            _LocalizeQuest(questTitle, entry, LOCALE_zhCN);
+            quest->GetLocalizeTitle(questTitle, LOCALE_zhCN);
             ObjectGuid::LowType guid = playerTarget->GetGUID().GetCounter();
             CharacterDatabaseTransaction trans = CharacterDatabase.BeginTransaction();
 
@@ -265,8 +238,7 @@ public:
 
         if (!playerTarget)
         {
-            handler->SendSysMessage(LANG_PLAYER_NOT_FOUND);
-            handler->SetSentErrorMessage(true);
+            handler->SendErrorMessage(LANG_PLAYER_NOT_FOUND);
             return false;
         }
 
@@ -276,12 +248,11 @@ public:
 
         if (Player* player = playerTarget->GetConnectedPlayer())
         {
-            _LocalizeQuest(player, questTitle, entry);
+            quest->GetLocalizeTitle(questTitle, player->GetSession()->GetSessionDbLocaleIndex());
             // If player doesn't have the quest
             if (player->GetQuestStatus(entry) == QUEST_STATUS_NONE)
             {
-                handler->PSendSysMessage(LANG_COMMAND_QUEST_NOTFOUND, entry);
-                handler->SetSentErrorMessage(true);
+                handler->SendErrorMessage(LANG_COMMAND_QUEST_NOTFOUND, entry);
                 return false;
             }
 
@@ -379,14 +350,13 @@ public:
         }
         else
         {
-            _LocalizeQuest(questTitle, entry, LOCALE_zhCN);
+            quest->GetLocalizeTitle(questTitle, LOCALE_zhCN);
             ObjectGuid::LowType guid = playerTarget->GetGUID().GetCounter();
             QueryResult result = CharacterDatabase.Query("SELECT 1 FROM character_queststatus WHERE guid = {} AND quest = {}", guid, entry);
 
             if (!result)
             {
-                handler->PSendSysMessage(LANG_COMMAND_QUEST_NOT_FOUND_IN_LOG, questTitle.c_str(), entry);
-                handler->SetSentErrorMessage(true);
+                handler->SendErrorMessage(LANG_COMMAND_QUEST_NOT_FOUND_IN_LOG, quest->GetTitle(), entry);
                 return false;
             }
 
@@ -538,8 +508,7 @@ public:
 
         if (!playerTarget)
         {
-            handler->SendSysMessage(LANG_PLAYER_NOT_FOUND);
-            handler->SetSentErrorMessage(true);
+            handler->SendErrorMessage(LANG_PLAYER_NOT_FOUND);
             return false;
         }
 
@@ -549,12 +518,11 @@ public:
 
         if (Player* player = playerTarget->GetConnectedPlayer())
         {
-            _LocalizeQuest(player, questTitle, entry);
+            quest->GetLocalizeTitle(questTitle, player->GetSession()->GetSessionDbLocaleIndex());
             // If player doesn't have the quest
             if (player->GetQuestStatus(entry) != QUEST_STATUS_COMPLETE)
             {
-                handler->PSendSysMessage(LANG_COMMAND_QUEST_NOTFOUND, entry);
-                handler->SetSentErrorMessage(true);
+                handler->SendErrorMessage(LANG_COMMAND_QUEST_NOTFOUND, entry);
                 return false;
             }
 
@@ -562,7 +530,7 @@ public:
         }
         else
         {
-            _LocalizeQuest(questTitle, entry, LOCALE_zhCN);
+            quest->GetLocalizeTitle(questTitle, LOCALE_zhCN);
             // Achievement criteria updates correctly the next time a quest is rewarded.
             // Titles are already awarded correctly the next time they login (only one quest awards title - 11549).
             // Rewarded talent points (Death Knights) and spells (e.g Druid forms) are also granted on login.
@@ -577,8 +545,7 @@ public:
 
             if (!result)
             {
-                handler->SendSysMessage(LANG_COMMAND_QUEST_NOT_COMPLETE);
-                handler->SetSentErrorMessage(true);
+                handler->SendErrorMessage(LANG_COMMAND_QUEST_NOT_COMPLETE);
                 return false;
             }
 

@@ -53,14 +53,12 @@
 #include "InstanceSaveMgr.h"
 #include "InstanceScript.h"
 #include "LFGMgr.h"
-#include "Language.h"
 #include "Log.h"
 #include "LootItemStorage.h"
 #include "MapMgr.h"
 #include "MiscPackets.h"
 #include "ObjectAccessor.h"
 #include "ObjectMgr.h"
-#include "Opcodes.h"
 #include "OutdoorPvP.h"
 #include "OutdoorPvPMgr.h"
 #include "Pet.h"
@@ -75,18 +73,17 @@
 #include "SpellAuraEffects.h"
 #include "SpellAuras.h"
 #include "SpellMgr.h"
+#include "StringConvert.h"
 #include "TicketMgr.h"
+#include "Tokenize.h"
 #include "Transport.h"
 #include "UpdateData.h"
-#include "UpdateFieldFlags.h"
 #include "Util.h"
 #include "Vehicle.h"
 #include "Weather.h"
 #include "World.h"
 #include "WorldPacket.h"
 #include "WorldSession.h"
-#include "Tokenize.h"
-#include "StringConvert.h"
 
 /// @todo: this import is not necessary for compilation and marked as unused by the IDE
 //  however, for some reasons removing it would cause a damn linking issue
@@ -603,8 +600,6 @@ bool Player::Create(ObjectGuid::LowType guidlow, CharacterCreateInfo* createInfo
     InitPrimaryProfessions();                               // to max set before any spell added
 
     // apply original stats mods before spell loading or item equipment that call before equip _RemoveStatsMods()
-    UpdateMaxHealth();                                      // Update max Health (for add bonus from stamina)
-    SetFullHealth();
     if (getPowerType() == POWER_MANA)
     {
         UpdateMaxPower(POWER_MANA);                         // Update max Mana (for add bonus from intellect)
@@ -701,6 +696,10 @@ bool Player::Create(ObjectGuid::LowType guidlow, CharacterCreateInfo* createInfo
         }
     }
     // all item positions resolved
+
+    // ensure player starts with full health
+    UpdateAllStats();
+    SetFullHealth();
 
     CheckAllAchievementCriteria();
 
@@ -1326,9 +1325,6 @@ void Player::SendTeleportAckPacket()
 
 bool Player::TeleportTo(uint32 mapid, float x, float y, float z, float orientation, uint32 options /*= 0*/, Unit* target /*= nullptr*/, bool newInstance /*= false*/)
 {
-    // for except kick by antispeedhack
-    sScriptMgr->AnticheatSetSkipOnePacketForASH(this, true);
-
     if (!MapMgr::IsValidMapCoord(mapid, x, y, z, orientation))
     {
         LOG_ERROR("entities.player", "TeleportTo: invalid map ({}) or invalid coordinates (X: {}, Y: {}, Z: {}, O: {}) given when teleporting player ({}, name: {}, map: {}, X: {}, Y: {}, Z: {}, O: {}).",
@@ -2234,14 +2230,14 @@ void Player::SetGameMaster(bool on)
     if (on)
     {
         m_ExtraFlags |= PLAYER_EXTRA_GM_ON;
-        if (AccountMgr::IsGMAccount(GetSession()->GetSecurity()))
+        if (GetSession()->IsGMAccount())
             SetFaction(FACTION_FRIENDLY);
         SetPlayerFlag(PLAYER_FLAGS_GM);
         SetUnitFlag2(UNIT_FLAG2_ALLOW_CHEAT_SPELLS);
 
         if (Pet* pet = GetPet())
         {
-            if (AccountMgr::IsGMAccount(GetSession()->GetSecurity()))
+            if (GetSession()->IsGMAccount())
                 pet->SetFaction(FACTION_FRIENDLY);
             pet->getHostileRefMgr().setOnlineOfflineState(false);
         }
@@ -2344,7 +2340,6 @@ bool Player::IsInSameGroupWith(Player const* p) const
 }
 
 ///- If the player is invited, remove him. If the group if then only 1 person, disband the group.
-/// \todo Shouldn't we also check if there is no other invitees before disbanding the group?
 void Player::UninviteFromGroup()
 {
     Group* group = GetGroupInvite();
@@ -2353,14 +2348,17 @@ void Player::UninviteFromGroup()
 
     group->RemoveInvite(this);
 
-    if (group->GetMembersCount() <= 1)                       // group has just 1 member => disband
+    if (group->IsCreated())
     {
-        if (group->IsCreated())
+        if (group->GetMembersCount() <= 1)                       // group has just 1 member => disband
         {
             group->Disband(true);
             group = nullptr; // gets deleted in disband
         }
-        else
+    }
+    else
+    {
+        if (group->GetInviteeCount() <= 1)
         {
             group->RemoveAllInvites();
             delete group;
@@ -2622,6 +2620,11 @@ void Player::GiveLevel(uint8 level)
     //npcbot: force bots to update stats
     _botMgr->SetBotsShouldUpdateStats();
     //end npcbot
+}
+
+bool Player::IsMaxLevel() const
+{
+    return GetLevel() >= GetUInt32Value(PLAYER_FIELD_MAX_LEVEL);
 }
 
 void Player::InitTalentForLevel()
@@ -3339,7 +3342,9 @@ void Player::learnSpell(uint32 spellId, bool temporary /*= false*/, bool learnFr
     // Xinef: don't allow to learn active spell once more
     if (HasActiveSpell(spellId))
     {
+#ifndef MOD_PLAYERBOTS
         LOG_DEBUG("entities.player", "Player ({}) tries to learn already active spell: {}", GetGUID().ToString(), spellId);
+#endif
         return;
     }
 
@@ -4586,6 +4591,7 @@ void Player::KillPlayer()
     if (corpseReclaimDelay >= 0)
         SendCorpseReclaimDelay(corpseReclaimDelay);
 
+    sScriptMgr->OnPlayerJustDied(this);
     // don't create corpse at this moment, player might be falling
 
     // update visibility
@@ -9514,12 +9520,10 @@ void Player::Whisper(std::string_view text, Language language, Player* target, b
     }
 }
 
-void Player::Whisper(uint32 textId, Player* target, bool /*isBossWhisper = false*/)
+void Player::Whisper(uint32 textId, Player* target, bool isBossWhisper)
 {
     if (!target)
-    {
         return;
-    }
 
     BroadcastText const* bct = sObjectMgr->GetBroadcastText(textId);
     if (!bct)
@@ -9530,7 +9534,10 @@ void Player::Whisper(uint32 textId, Player* target, bool /*isBossWhisper = false
 
     LocaleConstant locale = target->GetSession()->GetSessionDbLocaleIndex();
     WorldPacket data;
-    ChatHandler::BuildChatPacket(data, CHAT_MSG_WHISPER, LANG_UNIVERSAL, this, target, bct->GetText(locale, getGender()), 0, "", locale);
+    if (isBossWhisper)
+        ChatHandler::BuildChatPacket(data, CHAT_MSG_RAID_BOSS_WHISPER, LANG_UNIVERSAL, this, target, bct->GetText(locale, getGender()), 0, "", locale);
+    else
+        ChatHandler::BuildChatPacket(data, CHAT_MSG_WHISPER, LANG_UNIVERSAL, this, target, bct->GetText(locale, getGender()), 0, "", locale);
     target->SendDirectMessage(&data);
 }
 
@@ -14344,24 +14351,21 @@ void Player::ResummonPetTemporaryUnSummonedIfAny()
 
 bool Player::CanResummonPet(uint32 spellid)
 {
-    switch (getClass())
+    if (getClass() == CLASS_DEATH_KNIGHT)
     {
-        case CLASS_DEATH_KNIGHT:
-            if (CanSeeDKPet())
-                return true;
-            else if (spellid == 52150)  //Raise Dead
-                return false;
-            break;
-        case CLASS_MAGE:
-            if (HasSpell(31687) && HasAura(70937))  //Has [Summon Water Elemental] spell and [Glyph of Eternal Water].
-                return true;
-            break;
-        case CLASS_HUNTER:
-        case CLASS_WARLOCK:
+        if (CanSeeDKPet())
             return true;
-            break;
-        default:
-            break;
+        else if (spellid == 52150) // Raise Dead
+            return false;
+    }
+    else if (getClass() == CLASS_MAGE)
+    {
+        if (HasSpell(31687) && HasAura(70937))  //Has [Summon Water Elemental] spell and [Glyph of Eternal Water].
+            return true;
+    }
+    else if (getClass() == CLASS_HUNTER)
+    {
+        return true;
     }
 
     return HasSpell(spellid);

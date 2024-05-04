@@ -36,7 +36,7 @@ struct ItemSetEffect
 };
 
 // EnumUtils: DESCRIBE THIS
-enum InventoryResult
+enum InventoryResult : uint8
 {
     EQUIP_ERR_OK                                 = 0,
     EQUIP_ERR_CANT_EQUIP_LEVEL_I                 = 1,
@@ -158,7 +158,7 @@ enum SellResult
 };
 
 // -1 from client enchantment slot number
-enum EnchantmentSlot : uint16
+enum EnchantmentSlot : uint8
 {
     PERM_ENCHANTMENT_SLOT           = 0,
     TEMP_ENCHANTMENT_SLOT           = 1,
@@ -213,7 +213,7 @@ bool ItemCanGoIntoBag(ItemTemplate const* proto, ItemTemplate const* pBagProto);
 class Item : public Object
 {
 public:
-    static Item* CreateItem(uint32 item, uint32 count, Player const* player = nullptr, bool clone = false, uint32 randomPropertyId = 0);
+    static Item* CreateItem(uint32 item, uint32 count, Player const* player = nullptr, bool clone = false, uint32 randomPropertyId = 0, bool temp = false);
     Item* CloneItem(uint32 count, Player const* player = nullptr) const;
 
     Item();

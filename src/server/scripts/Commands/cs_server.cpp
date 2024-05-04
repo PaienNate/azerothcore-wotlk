@@ -23,16 +23,14 @@
  EndScriptData */
 
 #include "Chat.h"
-#include "Config.h"
+#include "CommandScript.h"
 #include "GameTime.h"
 #include "GitRevision.h"
-#include "Language.h"
 #include "ModuleMgr.h"
+#include "MotdMgr.h"
 #include "MySQLThreading.h"
 #include "Player.h"
 #include "Realm.h"
-#include "ScriptMgr.h"
-#include "MotdMgr.h"
 #include "StringConvert.h"
 #include "UpdateTime.h"
 #include "VMapFactory.h"
@@ -216,6 +214,9 @@ public:
         handler->PSendSysMessage("Default DBC locale: %s.\nAll available DBC locales: %s", localeNames[defaultLocale], availableLocales.c_str());
 
         handler->PSendSysMessage("Using World DB: %s", sWorld->GetDBVersion());
+#ifdef MOD_PLAYERBOTS
+        handler->PSendSysMessage("Using Playerbots DB Revision: %s", sWorld->GetPlayerbotsDBRevision());
+#endif
 
         std::string lldb = "No updates found!";
         if (QueryResult resL = LoginDatabase.Query("SELECT name FROM updates ORDER BY name DESC LIMIT 1"))
@@ -243,6 +244,14 @@ public:
         handler->PSendSysMessage("LoginDatabase queue size: %zu", LoginDatabase.QueueSize());
         handler->PSendSysMessage("CharacterDatabase queue size: %zu", CharacterDatabase.QueueSize());
         handler->PSendSysMessage("WorldDatabase queue size: %zu", WorldDatabase.QueueSize());
+
+        if (Acore::Module::GetEnableModulesList().empty())
+            handler->SendSysMessage("No modules enabled");
+        else
+            handler->SendSysMessage("> List enable modules:");
+#ifdef MOD_PLAYERBOTS
+        handler->PSendSysMessage("PlayerbotsDatabase queue size: %zu", PlayerbotsDatabase.QueueSize());
+#endif
 
         if (Acore::Module::GetEnableModulesList().empty())
             handler->SendSysMessage("No modules enabled");
@@ -307,8 +316,7 @@ public:
 
         if (Acore::StringTo<int32>(time).value_or(0) < 0)
         {
-            handler->SendSysMessage(LANG_BAD_VALUE);
-            handler->SetSentErrorMessage(true);
+            handler->SendErrorMessage(LANG_BAD_VALUE);
             return false;
         }
 
@@ -333,8 +341,7 @@ public:
 
         if (delay <= 0)
         {
-            handler->SendSysMessage(LANG_BAD_VALUE);
-            handler->SetSentErrorMessage(true);
+            handler->SendErrorMessage(LANG_BAD_VALUE);
             return false;
         }
 
@@ -362,8 +369,7 @@ public:
 
         if (Acore::StringTo<int32>(time).value_or(0) < 0)
         {
-            handler->SendSysMessage(LANG_BAD_VALUE);
-            handler->SetSentErrorMessage(true);
+            handler->SendErrorMessage(LANG_BAD_VALUE);
             return false;
         }
 
@@ -388,8 +394,7 @@ public:
 
         if (delay <= 0)
         {
-            handler->SendSysMessage(LANG_BAD_VALUE);
-            handler->SetSentErrorMessage(true);
+            handler->SendErrorMessage(LANG_BAD_VALUE);
             return false;
         }
 
@@ -417,8 +422,7 @@ public:
 
         if (Acore::StringTo<int32>(time).value_or(0) < 0)
         {
-            handler->SendSysMessage(LANG_BAD_VALUE);
-            handler->SetSentErrorMessage(true);
+            handler->SendErrorMessage(LANG_BAD_VALUE);
             return false;
         }
 
@@ -443,8 +447,7 @@ public:
 
         if (delay <= 0)
         {
-            handler->SendSysMessage(LANG_BAD_VALUE);
-            handler->SetSentErrorMessage(true);
+            handler->SendErrorMessage(LANG_BAD_VALUE);
             return false;
         }
 
@@ -472,8 +475,7 @@ public:
 
         if (Acore::StringTo<int32>(time).value_or(0) < 0)
         {
-            handler->SendSysMessage(LANG_BAD_VALUE);
-            handler->SetSentErrorMessage(true);
+            handler->SendErrorMessage(LANG_BAD_VALUE);
             return false;
         }
 
@@ -498,8 +500,7 @@ public:
 
         if (delay <= 0)
         {
-            handler->SendSysMessage(LANG_BAD_VALUE);
-            handler->SetSentErrorMessage(true);
+            handler->SendErrorMessage(LANG_BAD_VALUE);
             return false;
         }
 
@@ -577,8 +578,7 @@ public:
             return true;
         }
 
-        handler->SendSysMessage(LANG_USE_BOL);
-        handler->SetSentErrorMessage(true);
+        handler->SendErrorMessage(LANG_USE_BOL);
         return false;
     }
 

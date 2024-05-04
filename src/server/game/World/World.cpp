@@ -59,20 +59,21 @@
 #include "Log.h"
 #include "LootItemStorage.h"
 #include "LootMgr.h"
+#include "M2Stores.h"
 #include "MMapFactory.h"
 #include "MapMgr.h"
 #include "Metric.h"
-#include "M2Stores.h"
+#include "MotdMgr.h"
 #include "ObjectMgr.h"
 #include "Opcodes.h"
 #include "OutdoorPvPMgr.h"
+#include "QueryHolder.h"
 #include "PetitionMgr.h"
 #include "Player.h"
 #include "PlayerDump.h"
 #include "PoolMgr.h"
 #include "Realm.h"
 #include "ScriptMgr.h"
-#include "MotdMgr.h"
 #include "SkillDiscovery.h"
 #include "SkillExtraItems.h"
 #include "SmartAI.h"
@@ -1281,6 +1282,8 @@ void World::LoadConfigSettings(bool reload)
 
     _bool_configs[CONFIG_ALLOWS_RANK_MOD_FOR_PET_HEALTH] = sConfigMgr->GetOption<bool>("Pet.RankMod.Health", true);
 
+    _int_configs[CONFIG_DAILY_RBG_MIN_LEVEL_AP_REWARD] = sConfigMgr->GetOption<uint32>("DailyRBGArenaPoints.MinLevel", 71);
+
     _int_configs[CONFIG_AUCTION_HOUSE_SEARCH_TIMEOUT] = sConfigMgr->GetOption<uint32>("AuctionHouse.SearchTimeout", 1000);
 
     ///- Read the "Data" directory from the config file
@@ -1611,9 +1614,6 @@ void World::SetInitialWorldSettings()
 
     LOG_INFO("server.loading", "Loading Instance Template...");
     sObjectMgr->LoadInstanceTemplate();
-
-    LOG_INFO("server.loading", "Loading Instance Saved Gameobject State Data...");
-    sObjectMgr->LoadInstanceSavedGameobjectStateData();
 
     LOG_INFO("server.loading", "Loading Character Cache...");
     sCharacterCache->LoadCharacterCacheStorage();
@@ -2314,6 +2314,8 @@ void World::Update(uint32 diff)
         ResetGuildCap();
     }
 
+    sScriptMgr->OnPlayerbotUpdate(diff);
+
     // pussywizard: handle auctions when the timer has passed
     if (_timers[WUPDATE_AUCTIONS].Passed())
     {
@@ -2452,6 +2454,7 @@ void World::Update(uint32 diff)
         CharacterDatabase.KeepAlive();
         LoginDatabase.KeepAlive();
         WorldDatabase.KeepAlive();
+        sScriptMgr->OnDatabasesKeepAlive();
     }
 
     {
@@ -2705,6 +2708,9 @@ void World::KickAll()
     // pussywizard: kick offline sessions
     for (SessionMap::const_iterator itr = _offlineSessions.begin(); itr != _offlineSessions.end(); ++itr)
         itr->second->KickPlayer("KickAll offline sessions");
+#ifdef MOD_PLAYERBOTS
+    sScriptMgr->OnPlayerbotLogoutBots();
+#endif
 }
 
 /// Kick (and save) all players with security level less `sec`
@@ -2750,6 +2756,7 @@ void World::_UpdateGameTime()
 void World::ShutdownServ(uint32 time, uint32 options, uint8 exitcode, const std::string& reason)
 {
     // ignore if server shutdown at next tick
+
     if (IsStopped())
         return;
 
@@ -2770,6 +2777,9 @@ void World::ShutdownServ(uint32 time, uint32 options, uint8 exitcode, const std:
     {
         playersSaveScheduler.Schedule(Seconds(time - 5), [this](TaskContext /*context*/)
         {
+#ifdef MOD_PLAYERBOTS
+            sScriptMgr->OnPlayerbotLogoutBots();
+#endif
             if (!GetActiveSessionCount())
             {
                 LOG_INFO("server", "> No players online. Skip save before shutdown");
@@ -3247,11 +3257,34 @@ uint64 World::getWorldState(uint32 index) const
 void World::ProcessQueryCallbacks()
 {
     _queryProcessor.ProcessReadyCallbacks();
+    _queryHolderProcessor.ProcessReadyCallbacks();
+}
+
+SQLQueryHolderCallback& World::AddQueryHolderCallback(SQLQueryHolderCallback&& callback)
+{
+    return _queryHolderProcessor.AddCallback(std::move(callback));
 }
 
 void World::RemoveOldCorpses()
 {
     _timers[WUPDATE_CORPSES].SetCurrent(_timers[WUPDATE_CORPSES].GetInterval());
+}
+
+void World::DoForAllOnlinePlayers(std::function<void(Player*)> exec)
+{
+    std::shared_lock lock(*HashMapHolder<Player>::GetLock());
+    for (auto const& it : ObjectAccessor::GetPlayers())
+    {
+        if (Player* player = it.second)
+        {
+            if (!player->IsInWorld())
+            {
+                continue;
+            }
+
+            exec(player);
+        }
+    }
 }
 
 bool World::IsPvPRealm() const

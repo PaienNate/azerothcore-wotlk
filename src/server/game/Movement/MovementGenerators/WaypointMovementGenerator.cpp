@@ -38,7 +38,6 @@ void WaypointMovementGenerator<Creature>::LoadPath(Creature* creature)
 
     if (!i_path)
     {
-        // alvin-remove-log
         // No movement found for entry
         LOG_ERROR("sql.sql", "WaypointMovementGenerator::LoadPath: creature {} ({}) doesn't have waypoint path id: {}",
             creature->GetName(), creature->GetGUID().ToString(), path_id);
@@ -262,6 +261,19 @@ void WaypointMovementGenerator<Creature>::MovementInform(Creature* creature)
         if (UnitAI* AI = owner->GetAI())
         {
             AI->SummonMovementInform(creature, WAYPOINT_MOTION_TYPE, i_currentNode);
+        }
+    }
+    else
+    {
+        if (TempSummon* tempSummon = creature->ToTempSummon())
+        {
+            if (Unit* owner = tempSummon->GetSummonerUnit())
+            {
+                if (UnitAI* AI = owner->GetAI())
+                {
+                    AI->SummonMovementInform(creature, WAYPOINT_MOTION_TYPE, i_currentNode);
+                }
+            }
         }
     }
 }

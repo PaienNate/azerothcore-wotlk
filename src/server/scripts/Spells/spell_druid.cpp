@@ -15,19 +15,19 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "Containers.h"
+#include "CreatureScript.h"
+#include "GridNotifiers.h"
+#include "Player.h"
+#include "SpellAuraEffects.h"
+#include "SpellMgr.h"
+#include "SpellScript.h"
+#include "SpellScriptLoader.h"
 /*
  * Scripts for spells with SPELLFAMILY_DRUID and SPELLFAMILY_GENERIC spells used by druid players.
  * Ordered alphabetically using scriptname.
  * Scriptnames of files in this file should be prefixed with "spell_dru_".
  */
-
-#include "Containers.h"
-#include "GridNotifiers.h"
-#include "Player.h"
-#include "ScriptMgr.h"
-#include "SpellAuraEffects.h"
-#include "SpellMgr.h"
-#include "SpellScript.h"
 
 //npcbot
 #include "Creature.h"
@@ -213,6 +213,12 @@ class spell_dru_omen_of_clarity : public AuraScript
 
         // Don't proc on crafting items.
         if (spellInfo->HasEffect(SPELL_EFFECT_CREATE_ITEM))
+        {
+            return false;
+        }
+
+        // 禁止从兽群领袖触发
+        if (spellInfo->SpellIconID == 312)
         {
             return false;
         }
@@ -1294,3 +1300,4 @@ void AddSC_druid_spell_scripts()
     RegisterSpellScript(spell_dru_wild_growth);
     RegisterSpellScript(spell_dru_moonkin_form_passive_proc);
 }
+

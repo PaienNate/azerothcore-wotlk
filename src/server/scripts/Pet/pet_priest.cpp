@@ -20,9 +20,9 @@
  * Scriptnames of files in this file should be prefixed with "npc_pet_pri_".
  */
 
+#include "CreatureScript.h"
 #include "PassiveAI.h"
 #include "PetAI.h"
-#include "ScriptMgr.h"
 #include "ScriptedCreature.h"
 #include "TotemAI.h"
 
@@ -65,10 +65,19 @@ struct npc_pet_pri_shadowfiend : public PetAI
 
         if (Unit* target = me->SelectNearestTarget(15.0f))
             AttackStart(target);
-        if (Unit* ownertarget = me->GetOwner()->ToPlayer()->GetSelectedUnit())
+
+        Unit* owner = me->GetOwner();
+        if (owner && owner->GetTypeId() == TYPEID_PLAYER )
         {
-            AttackStart(ownertarget);
-            DoMeleeAttackIfReady();
+            Unit* selection = owner->ToPlayer()->GetSelectedUnit();
+
+            if (selection && me->IsValidAttackTarget(selection))
+            {
+                me->GetThreatMgr().ResetAllThreat();
+                me->AddThreat(selection, 1000000.0f);
+                AttackStart(selection);
+                DoMeleeAttackIfReady();
+            }
         }
     }
 

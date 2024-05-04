@@ -15,8 +15,24 @@
  * with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "DatabaseScript.h"
 #include "ScriptMgr.h"
 #include "ScriptMgrMacros.h"
+
+bool ScriptMgr::OnDatabasesLoading()
+{
+    auto ret = IsValidBoolScript<DatabaseScript>([&](DatabaseScript* script)
+    {
+        return !script->OnDatabasesLoading();
+    });
+
+    if (ret && *ret)
+    {
+        return false;
+    }
+
+    return true;
+}
 
 void ScriptMgr::OnAfterDatabasesLoaded(uint32 updateFlags)
 {
@@ -33,3 +49,50 @@ void ScriptMgr::OnAfterDatabaseLoadCreatureTemplates(std::vector<CreatureTemplat
         script->OnAfterDatabaseLoadCreatureTemplates(creatureTemplates);
     });
 }
+
+void ScriptMgr::OnDatabasesKeepAlive()
+{
+    ExecuteScript<DatabaseScript>([&](DatabaseScript* script)
+    {
+        script->OnDatabasesKeepAlive();
+    });
+}
+
+void ScriptMgr::OnDatabasesClosing()
+{
+    ExecuteScript<DatabaseScript>([&](DatabaseScript* script)
+    {
+        script->OnDatabasesClosing();
+    });
+}
+
+void ScriptMgr::OnDatabaseWarnAboutSyncQueries(bool apply)
+{
+    ExecuteScript<DatabaseScript>([&](DatabaseScript* script)
+    {
+        script->OnDatabaseWarnAboutSyncQueries(apply);
+    });
+}
+
+void ScriptMgr::OnDatabaseSelectIndexLogout(Player* player, uint32& statementIndex, uint32& statementParam)
+{
+    ExecuteScript<DatabaseScript>([&](DatabaseScript* script)
+    {
+        script->OnDatabaseSelectIndexLogout(player, statementIndex, statementParam);
+    });
+}
+
+void ScriptMgr::OnDatabaseGetDBRevision(std::string& revision)
+{
+    ExecuteScript<DatabaseScript>([&](DatabaseScript* script)
+    {
+        script->OnDatabaseGetDBRevision(revision);
+    });
+}
+
+DatabaseScript::DatabaseScript(const char* name) : ScriptObject(name)
+{
+    ScriptRegistry<DatabaseScript>::AddScript(this);
+}
+
+template class AC_GAME_API ScriptRegistry<DatabaseScript>;
