@@ -906,7 +906,7 @@ public:
                 continue;
             }
 
-            if (wps_relinks.count(lwp) != 0)
+            if (wps_relinks.contains(lwp))
                 wps_relinks.erase(lwp);
 
             handler->PSendSysMessage("Adding link %u%s%u...", wp->GetWPId(), oneway ? "->" : "<->", lid);
@@ -1826,10 +1826,41 @@ public:
             target_guid = bot->GetTarget();
         else if (target_token == "mytarget" || target_token == "我的目标")
             target_guid = owner->GetTarget();
+        else if (target_token == "star")
+            target_guid = owner->GetGroup()->GetTargetIcons()[0];
+        else if (target_token == "circle")
+            target_guid = owner->GetGroup()->GetTargetIcons()[1];
+        else if (target_token == "diamond")
+            target_guid = owner->GetGroup()->GetTargetIcons()[2];
+        else if (target_token == "triangle")
+            target_guid = owner->GetGroup()->GetTargetIcons()[3];
+        else if (target_token == "moon")
+            target_guid = owner->GetGroup()->GetTargetIcons()[4];
+        else if (target_token == "square")
+            target_guid = owner->GetGroup()->GetTargetIcons()[5];
+        else if (target_token == "cross")
+            target_guid = owner->GetGroup()->GetTargetIcons()[6];
+        else if (target_token == "skull")
+            target_guid = owner->GetGroup()->GetTargetIcons()[7];
+        else if (target_token->size() == 1u && owner->GetGroup() && std::isdigit(target_token->front()))
+        {
+            uint8 digit = static_cast<uint8>(std::stoi(std::string(*target_token)));
+            switch (digit)
+            {
+                case 1: case 2: case 3: case 4: case 5: case 6: case 7: case 8:
+                    target_guid = owner->GetGroup()->GetTargetIcons()[digit - 1];
+                    break;
+                default:
+                    target_guid = ObjectGuid::Empty;
+                    break;
+            }
+        }
         else
         {
             handler->PSendSysMessage("无效的target_token '%s'!", *target_token);
-            handler->SendSysMessage("可用的target_token:\n    '','bot','self', 'me','master', 'mypet', 'myvehicle', 'target', 'mytarget', '机器人', '自己', '我', '主人', '我的宠物', '我的载具', '目标', '我的目标'");
+            handler->SendSysMessage("可用的target_token:\n    '','bot','self', 'me','master', 'mypet', 'myvehicle', 'target', 'mytarget', '机器人', '自己', '我', '主人', '我的宠物', '我的载具', '目标', '我的目标'"
+             "'star','1', 'circle','2', 'diamond','3', 'triangle','4', 'moon','5', 'square','6', 'cross','7', 'skull','8'"
+            );
             return true;
         }
 
@@ -3233,7 +3264,7 @@ public:
                 ss << "\n" << counter << ") " << bot->GetEntry() << ": "
                     << bot->GetName() << " - |c" << bot_color_str << bot_class_str << "|r - "
                     << "等级 " << uint32(bot->GetLevel()) << " - \"" << zone_name << "\" - "
-                    << (bot->IsFreeBot() ? (bot->GetBotAI()->GetBotOwnerGuid() ? "未激活 (已雇佣)" : "自由") : "已激活");
+                    << (bot->IsFreeBot() ? bot->GetBotAI()->GetBotOwnerGuid() ? "未激活 (已雇佣)" : bot->GetBotAI()->IsWanderer() ? "闲逛" : "自由" : "已激活");
             }
         }
 

@@ -118,8 +118,9 @@ GraveyardStruct const* Graveyard::GetClosestGraveyard(Player* player, TeamId tea
     uint32 zoneId = 0;
     uint32 areaId = 0;
     player->GetZoneAndAreaId(zoneId, areaId);
-
-    return GetClosestGraveyard(mapId, x, y, z, teamId, areaId, zoneId, player->getClass() == CLASS_DEATH_KNIGHT);
+    // 应用新的IsClass修改
+    return GetClosestGraveyard(mapId, x, y, z, teamId, areaId, zoneId, player->IsClass(CLASS_DEATH_KNIGHT, CLASS_CONTEXT_GRAVEYARD));
+    // return GetClosestGraveyard(mapId, x, y, z, teamId, areaId, zoneId, player->getClass() == CLASS_DEATH_KNIGHT);
 }
 
 GraveyardStruct const* Graveyard::GetClosestGraveyard(uint32 mapId, float x, float y, float z, TeamId teamId, uint32 areaId, uint32 zoneId, bool isDeathKnight)
@@ -206,7 +207,7 @@ GraveyardStruct const* Graveyard::GetClosestGraveyard(uint32 mapId, float x, flo
             GRAVEYARD_EBON_HOLD = 1369,
             GRAVEYARD_ARCHERUS  = 1405
         };
-
+        // 保留Alvin的修改方案
         if (!isDeathKnight && (graveyardLink.safeLocId == GRAVEYARD_EBON_HOLD || graveyardLink.safeLocId == GRAVEYARD_ARCHERUS))
         {
             continue;
