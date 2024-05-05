@@ -641,8 +641,7 @@ void InstanceScript::DoStopTimedAchievement(AchievementCriteriaTimedTypes type, 
 // Remove Auras due to Spell on all players in instance
 void InstanceScript::DoRemoveAurasDueToSpellOnPlayers(uint32 spell)
 {
-    Map::PlayerList const& PlayerList = instance->GetPlayers();
-    if (!PlayerList.IsEmpty())
+    instance->DoForAllPlayers([&](Player* player)
     {
         player->RemoveAurasDueToSpell(spell);
         if (Pet* pet = player->GetPet())
@@ -657,7 +656,6 @@ void InstanceScript::DoRemoveAurasDueToSpellOnPlayers(uint32 spell)
                 //end npcbot
     });
 }
-
 // Cast spell on all players in instance
 void InstanceScript::DoCastSpellOnPlayers(uint32 spell)
 {
