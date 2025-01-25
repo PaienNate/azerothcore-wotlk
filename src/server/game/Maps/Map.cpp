@@ -2656,8 +2656,6 @@ void Map::SendObjectUpdates()
             iter->second.Clear();
             continue;
         }
-        // 不清楚情况，先这样
-        // iter->second.BuildPacket(&packet);
         iter->second.BuildPacket(packet);
         iter->first->GetSession()->SendPacket(&packet);
         packet.clear();                                     // clean the string
@@ -3067,6 +3065,15 @@ bool InstanceMap::AddPlayerToMap(Player* player)
     m_unloadTimer = 0;
     m_resetAfterUnload = false;
     m_unloadWhenEmpty = false;
+
+    if (instance_data && instance_data->IsTwoFactionInstance()
+        && instance_data->GetTeamIdInInstance() == TEAM_NEUTRAL)
+    {
+        instance_data->SetTeamIdInInstance(player->GetTeamId());
+        if (Group* group = player->GetGroup())
+            if (Player* leader = ObjectAccessor::FindConnectedPlayer(group->GetLeaderGUID()))
+                instance_data->SetTeamIdInInstance(leader->GetTeamId());
+    }
 
     // this will acquire the same mutex so it cannot be in the previous block
     Map::AddPlayerToMap(player);

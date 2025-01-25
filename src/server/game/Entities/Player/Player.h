@@ -849,16 +849,6 @@ enum EnviromentalDamage
     DAMAGE_FALL_TO_VOID = 6                                 // custom case for fall without durability loss
 };
 
-enum PlayerChatTag
-{
-    CHAT_TAG_NONE       = 0x00,
-    CHAT_TAG_AFK        = 0x01,
-    CHAT_TAG_DND        = 0x02,
-    CHAT_TAG_GM         = 0x04,
-    CHAT_TAG_COM        = 0x08, // Commentator tag. Do not exist in clean client
-    CHAT_TAG_DEV        = 0x10,
-};
-
 enum PlayedTimeIndex
 {
     PLAYED_TIME_TOTAL = 0,
@@ -2073,8 +2063,10 @@ public:
 
     void JoinedChannel(Channel* c);
     void LeftChannel(Channel* c);
+    bool IsInChannel(const Channel* c);
     void CleanupChannels();
     void ClearChannelWatch();
+    void UpdateLFGChannel();
     void UpdateLocalChannels(uint32 newZone);
 
     void UpdateDefense();
@@ -2410,7 +2402,7 @@ public:
     void SetAtLoginFlag(AtLoginFlags f) { m_atLoginFlags |= f; }
     void RemoveAtLoginFlag(AtLoginFlags flags, bool persist = false);
 
-    bool isUsingLfg();
+    bool IsUsingLfg();
     bool inRandomLfgDungeon();
 
     typedef std::set<uint32> DFQuestsDoneList;
