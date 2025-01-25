@@ -21,7 +21,6 @@
 #include "Battleground.h"
 #include "BattlegroundScore.h"
 #include "EventMap.h"
-#include "Language.h"
 
 enum BG_EY_Events
 {
@@ -36,7 +35,7 @@ enum BG_EY_Timers
     BG_EY_FLAG_RESPAWN_TIME         = 10 * IN_MILLISECONDS,
     BG_EY_FLAG_ON_GROUND_TIME       = 10 * IN_MILLISECONDS,
     BG_EY_FPOINTS_CHECK_TIME        = 2 * IN_MILLISECONDS,
-    BG_EY_FPOINTS_TICK_TIME         = 1 * IN_MILLISECONDS
+    BG_EY_FPOINTS_TICK_TIME         = 2 * IN_MILLISECONDS
 };
 
 enum BG_EY_WorldStates
@@ -426,6 +425,24 @@ public:
     void SetDroppedFlagGUID(ObjectGuid guid, TeamId /*teamId*/ = TEAM_NEUTRAL) override  { _droppedFlagGUID = guid; }
     ObjectGuid GetDroppedFlagGUID() const { return _droppedFlagGUID; }
 
+    //npcbot
+    void AddBot(Creature* bot) override;
+    GraveyardStruct const* GetClosestGraveyardForBot(Creature* bot) const override;
+    void RemoveBot(ObjectGuid guid) override;
+    bool UpdateBotScore(Creature const* bot, uint32 type, uint32 value) override;
+    void HandleBotKillPlayer(Creature* killer, Player* victim) override;
+    void HandleBotKillBot(Creature* killer, Creature* victim) override;
+    void HandlePlayerKillBot(Creature* victim, Player* killer) override;
+    void EventBotDroppedFlag(Creature* bot) override;
+    void EventBotClickedOnFlag(Creature* bot, GameObject* target_obj) override;
+    void HandleBotAreaTrigger(Creature* bot, uint32 trigger) override;
+    void EventBotCapturedFlag(Creature* bot, uint32 bgObjectType);
+    void EventBotTeamCapturedPoint(Creature const* bot, TeamId teamId, uint32 point);
+    void EventBotTeamLostPoint(Creature const* bot, uint32 point);
+    int8 GetPlayersCountNearPoint(uint8 point, TeamId teamId) const { return _capturePointInfo[point]._playersCount[teamId]; }
+    TeamId GetPointOwner(uint8 point) const { return _capturePointInfo[point]._ownerTeamId; }
+    //end npcbot
+
     /* Battleground Events */
     void EventPlayerClickedOnFlag(Player* player, GameObject* gameObject) override;
     void EventPlayerDroppedFlag(Player* player) override;
@@ -451,7 +468,29 @@ private:
     /* Scorekeeping */
     void AddPoints(TeamId teamId, uint32 points);
 
-    CaptureEYPointInfo _capturePointInfo[EY_POINTS_MAX];
+    struct CapturePointInfo
+    {
+        CapturePointInfo() : _ownerTeamId(TEAM_NEUTRAL), _barStatus(BG_EY_PROGRESS_BAR_STATE_MIDDLE), _areaTrigger(0)
+        {
+            _playersCount[TEAM_ALLIANCE] = 0;
+            _playersCount[TEAM_HORDE] = 0;
+        }
+
+        TeamId _ownerTeamId;
+        int8 _barStatus;
+        uint32 _areaTrigger;
+        int8 _playersCount[PVP_TEAMS_COUNT];
+        Player* player = nullptr;
+        //npcbot
+        Creature* bot = nullptr;
+        //end npcbot
+
+        bool IsUnderControl(TeamId teamId) const { return _ownerTeamId == teamId; }
+        bool IsUnderControl() const { return _ownerTeamId != TEAM_NEUTRAL; }
+        bool IsUncontrolled() const { return _ownerTeamId == TEAM_NEUTRAL; }
+    };
+
+    CapturePointInfo _capturePointInfo[EY_POINTS_MAX];
     EventMap _bgEvents;
     uint32 _honorTics;
     uint8 _ownedPointsCount[PVP_TEAMS_COUNT];

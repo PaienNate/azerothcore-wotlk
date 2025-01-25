@@ -130,7 +130,7 @@ public:
             CharacterDatabase.Execute(stmt);
         }
 
-        handler->PSendSysMessage(LANG_COMMAND_QUEST_ADD, questTitle.c_str(), entry);
+        handler->PSendSysMessage(LANG_COMMAND_QUEST_ADD, quest->GetTitle(), entry);
         handler->SetSentErrorMessage(false);
         return true;
     }
@@ -224,7 +224,7 @@ public:
             CharacterDatabase.CommitTransaction(trans);
         }
 
-        handler->PSendSysMessage(LANG_COMMAND_QUEST_REMOVED, questTitle.c_str(), entry);
+        handler->PSendSysMessage(LANG_COMMAND_QUEST_REMOVED, quest->GetTitle(), entry);
         handler->SetSentErrorMessage(false);
         return true;
     }
@@ -374,7 +374,7 @@ public:
                     continue;
                 }
 
-                questItems.push_back(std::pair(id, count));
+                questItems.emplace_back(id, count);
             }
 
             if (!questItems.empty())
@@ -494,7 +494,7 @@ public:
             CharacterDatabase.Execute(stmt);
         }
 
-        handler->PSendSysMessage(LANG_COMMAND_QUEST_COMPLETE, questTitle.c_str(), entry);
+        handler->PSendSysMessage(LANG_COMMAND_QUEST_COMPLETE, quest->GetTitle(), entry);
         handler->SetSentErrorMessage(false);
         return true;
     }
@@ -601,7 +601,7 @@ public:
                 for (uint32 const& itemId : quest->RewardChoiceItemId)
                 {
                     uint8 index = 0;
-                    questRewardItems.push_back(std::pair(itemId, quest->RewardChoiceItemCount[index++]));
+                    questRewardItems.emplace_back(itemId, quest->RewardChoiceItemCount[index++]);
                 }
             }
 
@@ -610,7 +610,7 @@ public:
                 for (uint32 const& itemId : quest->RewardItemId)
                 {
                     uint8 index = 0;
-                    questRewardItems.push_back(std::pair(itemId, quest->RewardItemIdCount[index++]));
+                    questRewardItems.emplace_back(itemId, quest->RewardItemIdCount[index++]);
                 }
             }
 
@@ -743,7 +743,7 @@ public:
             CharacterDatabase.CommitTransaction(trans);
         }
 
-        handler->PSendSysMessage(LANG_COMMAND_QUEST_REWARDED, questTitle.c_str(), entry);
+        handler->PSendSysMessage(LANG_COMMAND_QUEST_REWARDED, quest->GetTitle(), entry);
         handler->SetSentErrorMessage(false);
         return true;
     }

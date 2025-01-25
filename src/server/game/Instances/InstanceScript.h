@@ -184,7 +184,13 @@ public:
     //Called when a player successfully enters the instance.
     virtual void OnPlayerEnter(Player* /*player*/) {}
 
+    //Called when a player successfully leaves the instance.
+    virtual void OnPlayerLeave(Player* /*player*/) {}
+
     virtual void OnPlayerAreaUpdate(Player* /*player*/, uint32 /*oldArea*/, uint32 /*newArea*/) {}
+
+    //Called when a player enters/leaves water bodies.
+    virtual void OnPlayerInWaterStateUpdate(Player* /*player*/, bool /*inWater*/) {}
 
     //npcbot: map hooks
     virtual void OnNPCBotEnter(Creature* /*bot*/) { }
@@ -279,6 +285,10 @@ public:
 
     void LoadInstanceSavedGameobjectStateData();
 
+    [[nodiscard]] bool IsBossDone(uint32 bossId) const { return GetBossState(bossId) == DONE; };
+    [[nodiscard]] bool AllBossesDone() const;
+    [[nodiscard]] bool AllBossesDone(std::initializer_list<uint32> bossIds) const;
+
     TaskScheduler scheduler;
 protected:
     void SetHeaders(std::string const& dataHeaders);
@@ -288,6 +298,11 @@ protected:
     void LoadDoorData(DoorData const* data);
     void LoadMinionData(MinionData const* data);
     void LoadObjectData(ObjectData const* creatureData, ObjectData const* gameObjectData);
+    // Allows setting another creature as summoner for a creature.
+    // This is used to handle summons that are not directly controlled by the summoner.
+    // Summoner creature must be loaded in the instance data (LoadObjectData).
+    void LoadSummonData(ObjectData const* data);
+    void SetSummoner(Creature* creature);
 
     void AddObject(Creature* obj, bool add = true);
     void RemoveObject(Creature* obj);
@@ -324,6 +339,7 @@ private:
     MinionInfoMap minions;
     ObjectInfoMap _creatureInfo;
     ObjectInfoMap _gameObjectInfo;
+    ObjectInfoMap _summonInfo;
     ObjectGuidMap _objectGuids;
     ObjectStateMap _objectStateMap;
     uint32 completedEncounters; // completed encounter mask, bit indexes are DungeonEncounter.dbc boss numbers, used for packets
