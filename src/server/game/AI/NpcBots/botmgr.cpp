@@ -285,7 +285,6 @@ BotMgr::BotMgr(Player* const master) : _owner(master), _dpstracker(new DPSTracke
     _quickrecall = false;
     _update_lock = false;
     _data = nullptr;
-    _botsHidden = true;
 }
 BotMgr::~BotMgr()
 {

@@ -2370,6 +2370,7 @@ public:
         }
 
         ObjectGuid target_guid;
+        bool token_valid = true;
         if (!target_token || target_token == "bot" || target_token == "self" || target_token == "机器人" || target_token == "自己")
             target_guid = bot->GetGUID();
         else if (target_token == "me" || target_token == "master" || target_token == "我" || target_token == "主人")
@@ -3448,12 +3449,12 @@ public:
 
             if (receiver == ObjectGuid::Empty)
             {
-                handler->PSendSysMessage("Cannot delete bot {} from console: has gear but no player to give it back to! Can only delete this bot in-game.", bot->GetName());
+                handler->PSendSysMessage("无法从控制台删除机器人 {}：机器人有装备但没有玩家可以归还！只能在游戏中删除此机器人。", bot->GetName());
                 return false;
             }
             if (bot->GetBotAI()->UnEquipAll(receiver, false) != BotEquipResult::BOT_EQUIP_RESULT_OK)
             {
-                handler->PSendSysMessage("{} is unable to unequip some gear. Please remove equips manually first!", bot->GetName());
+                handler->PSendSysMessage("{} 无法卸下部分装备。请先手动移除装备！", bot->GetName());
                 return false;
             }
         }
@@ -3587,22 +3588,8 @@ public:
 
         if (!HandeNpcBotCleanUpAndRemoval(handler, const_cast<Creature*>(bot), chr))
         {
-            ObjectGuid receiver =
-                botowner ? botowner->GetGUID() :
-                bot->GetBotAI()->GetBotOwnerGuid() != 0 ? ObjectGuid(HighGuid::Player, 0, bot->GetBotAI()->GetBotOwnerGuid()) :
-                chr ? chr->GetGUID() : ObjectGuid::Empty;
-            if (receiver == ObjectGuid::Empty)
-            {
-                handler->PSendSysMessage("无法从控制台删除NPCBot {}：有装备，但没有玩家可以归还! 只能在游戏中删除这个NPCBot。", bot->GetName());
-                handler->SetSentErrorMessage(true);
-                return false;
-            }
-            if (!bot->GetBotAI()->UnEquipAll(receiver))
-            {
-                handler->PSendSysMessage("{} 无法解除某些装备。请在删除NPCBot之前删除装备!", bot->GetName());
-                handler->SetSentErrorMessage(true);
-                return false;
-            }
+            handler->SetSentErrorMessage(true);
+            return false;
         }
 
         const_cast<Creature*>(bot)->CombatStop();
