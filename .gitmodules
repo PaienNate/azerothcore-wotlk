@@ -41,6 +41,6 @@ url=https://github.com/PaienNate/mod-transmog.git
 	path = modules/mod-solo-lfg
 	url = git@github.com:azerothcore/mod-solo-lfg.git
 	url = https://github.com/AlvinZhu/mod-synthesize-trainer.git
-[submodule "mod-playerbots"]
-	path = mod-playerbots
+[submodule "modules/mod-playerbots"]
+	path = modules/mod-playerbots
 	url = https://github.com/liyunfan1223/mod-playerbots.git
