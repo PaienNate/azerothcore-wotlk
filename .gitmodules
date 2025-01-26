@@ -3,22 +3,22 @@
 	url = https://github.com/ingydotnet/git-subrepo.git
 [submodule "modules/mod-account-achievements"]
 	path = modules/mod-account-achievements
-	url = https://github.com/AlvinZhu/mod-account-achievements.git
+url=git@github.com:PaienNate/mod-account-achievements.git
 [submodule "modules/mod-ah-bot"]
 	path = modules/mod-ah-bot
-	url = https://github.com/AlvinZhu/mod-ah-bot.git
+url=https://github.com/azerothcore/mod-ah-bot.git
 [submodule "modules/mod-autobalance"]
 	path = modules/mod-autobalance
-	url = https://github.com/AlvinZhu/mod-autobalance.git
+url=git@github.com:PaienNate/mod-autobalance.git
 [submodule "modules/mod-eluna"]
 	path = modules/mod-eluna
 	url = https://github.com/azerothcore/mod-eluna.git
 [submodule "modules/mod-weekend-xp"]
 	path = modules/mod-weekend-xp
-	url = https://github.com/AlvinZhu/mod-weekend-xp.git
+url=git@github.com:PaienNate/mod-weekend-xp.git
 [submodule "modules/mod-cfbg"]
 	path = modules/mod-cfbg
-	url = https://github.com/AlvinZhu/mod-cfbg.git
+url=git@github.com:PaienNate/mod-cfbg.git
 [submodule "modules/mod-transmog"]
 	path = modules/mod-transmog
 url=https://github.com/PaienNate/mod-transmog.git
@@ -30,10 +30,10 @@ url=https://github.com/PaienNate/mod-transmog.git
 	url = https://github.com/AlvinZhu/mod-bg-set-level.git
 [submodule "modules/mod-reagent-bank-account"]
 	path = modules/mod-reagent-bank-account
-	url = https://github.com/AlvinZhu/mod-reagent-bank-account.git
+url=git@github.com:PaienNate/mod-reagent-bank.git
 [submodule "modules/mod-challenge-modes"]
 	path = modules/mod-challenge-modes
-	url = https://github.com/AlvinZhu/mod-challenge-modes.git
+url=git@github.com:PaienNate/mod-challenge-modes.git
 [submodule "modules/mod-solocraft"]
 	path = modules/mod-solocraft
 	url = git@github.com:trickerer/mod-solocraft.git
